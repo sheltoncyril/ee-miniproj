@@ -139,9 +139,11 @@ def bg_blur(org, img, mask):
     return cv.addWeighted(img_arr, 1, img, 1, 0)
 
 
-def bg_replace(mask, src_img, bg_img):
-    bg_img = bg_img.resize((src_img.shape[1], src_img.shape[0]))
-    bg_img = cv.cvtColor(np.asarray(bg_img), cv.COLOR_BGR2RGB)
+def bg_replace(mask, src_img, bg_img, resize=True, cc=True):
+    if resize:
+        bg_img = bg_img.resize((src_img.shape[1], src_img.shape[0]))
+    if cc:
+        bg_img = cv.cvtColor(np.asarray(bg_img), cv.COLOR_BGR2RGB)
     rev_mask = np.where((mask == 0) | (mask == 1), mask ^ 1, mask)
     masked = bg_img * rev_mask
     image_array = np.where(masked == 0, 1, masked)
@@ -215,3 +217,23 @@ def face_replace(frame, repl_img):
         replaced_img = cv.addWeighted(filter_img, 1, extract_cat, 1, 0)
         f_c[y : y + h, x : x + w] = replaced_img
     return f_c
+
+
+class CustomF:
+    def __init__(self, gif):
+        self.gif = gif
+        self.counter = 0
+        self.frame_count = int(self.gif.get(cv.CAP_PROP_FRAME_COUNT))
+
+    def next_frame(self):
+        self.gif.set(cv.CAP_PROP_POS_FRAMES, self.counter)
+        self.counter += 1
+        if self.counter >= self.frame_count:
+            self.counter = 0
+        _, f = self.gif.read()
+        return f
+
+    def blend(self, frame, mask):
+        g_frame = self.next_frame()
+        g_frame = cv.resize(g_frame, (frame.shape[1], frame.shape[0]))
+        return bg_replace(mask, frame, g_frame, resize=False, cc=False)
