@@ -19,6 +19,7 @@ backend_target_pairs = [
 ]
 
 
+# PPHumanSeg  taken from opencv_zoo implementation
 class PPHumanSeg:
     def __init__(self, modelPath, backendId=0, targetId=0):
         self._modelPath = modelPath
@@ -73,6 +74,7 @@ class PPHumanSeg:
         return result
 
 
+# Taken from CSI-Camera
 def gstreamer_pipeline(
     sensor_id=0,
     capture_width=1920,
@@ -101,6 +103,7 @@ def gstreamer_pipeline(
     )
 
 
+# Taken from PPHumanSeg
 def get_args():
     parser = argparse.ArgumentParser(description="PPHumanSeg (https://github.com/PaddlePaddle/PaddleSeg/tree/release/2.2/contrib/PP-HumanSeg)")
     parser.add_argument("--input", "-i", type=str, help="Usage: Set input path to a certain image, omit if using camera.")
@@ -127,10 +130,12 @@ def get_args():
     return parser.parse_args()
 
 
+# Had more code initially
 def load_color_image(img_path):
     return Image.open(img_path)
 
 
+# background blur implementation
 def bg_blur(org, img, mask):
     blurred_img = np.asarray(cv.blur(np.asarray(org), (15, 15)))
     rev_mask = np.where((mask == 0) | (mask == 1), mask ^ 1, mask)
@@ -139,6 +144,9 @@ def bg_blur(org, img, mask):
     return cv.addWeighted(img_arr, 1, img, 1, 0)
 
 
+# background replacement implementation
+# resize resizes the background image
+# cc color corrects the image
 def bg_replace(mask, src_img, bg_img, resize=True, cc=True):
     if resize:
         bg_img = bg_img.resize((src_img.shape[1], src_img.shape[0]))
@@ -150,12 +158,14 @@ def bg_replace(mask, src_img, bg_img, resize=True, cc=True):
     return cv.addWeighted(np.asarray(image_array), 1, src_img, 1, 0)
 
 
+# face detection
 def face_detect(frame):
     gr_img = cv.cvtColor(np.array(frame), cv.COLOR_BGR2GRAY)
     faces = fdtct_clsf.detectMultiScale(gr_img, 1.3, 5)
     return faces
 
 
+# face distort implementation
 def _distort(img, w1, h1):
     h, w, _ = img.shape
     flex_x = np.zeros((h, w), np.float32)
@@ -183,6 +193,7 @@ def _distort(img, w1, h1):
     return cv.remap(img, flex_x, flex_y, cv.INTER_LINEAR)
 
 
+# driver which detects faces and then distorts them
 def face_distort(frame):
     faces = face_detect(frame)
     try:
@@ -196,6 +207,8 @@ def face_distort(frame):
         return frame
 
 
+# face replacement
+# first detects faces then draws the replacement image on top
 def face_replace(frame, repl_img):
     gr_repl_img = cv.cvtColor(np.asarray(repl_img), cv.COLOR_BGR2GRAY)
     _, img_thresh = cv.threshold(gr_repl_img, 0, 250, cv.THRESH_BINARY)
@@ -222,18 +235,22 @@ def face_replace(frame, repl_img):
     return f_c
 
 
+# custom filter implementation
+# takes a gif or a video
+# then chooses a frame from the video and one from the camera and blends them
+# keeps looping infinitely
 class CustomF:
     def __init__(self, gif):
         self.gif = gif
         self.counter = 0
-        self.frame_count = int(self.gif.get(cv.CAP_PROP_FRAME_COUNT))
+        self.frame_count = int(self.gif.get(cv.CAP_PROP_FRAME_COUNT))  # gets total number of frames from the video/gif
 
     def next_frame(self):
         self.gif.set(cv.CAP_PROP_POS_FRAMES, self.counter)
-        self.counter += 1
+        self.counter += 1  # counter which tracks which gif frame it is on
         if self.counter >= self.frame_count:
             self.counter = 0
-        _, f = self.gif.read()
+        _, f = self.gif.read()  # reads the frame based on the set counter
         return f
 
     def blend(self, frame, mask):

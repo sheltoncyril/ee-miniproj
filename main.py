@@ -10,7 +10,6 @@ from utils import (
     backend_target_pairs,
     bg_blur,
     bg_replace,
-    face_detect,
     face_distort,
     face_replace,
     get_args,
@@ -18,28 +17,46 @@ from utils import (
     load_color_image,
 )
 
+# check if a newer version of opencv is present
 assert cv.__version__ >= "4.8.0", "Please install latest opencv-python to try this demo: python3 -m pip install --upgrade opencv-python"
 
 # To flip the image, modify the flip_method parameter (0 and 2 are the most common)
 print(gstreamer_pipeline(flip_method=2))
 
+# getting args so that the PPhumanSeg model can be run on modes suitable to a laptop and the CUDA accelerated Jetson
 args = get_args()
+
+# Loading necessary images
 bg_img = load_color_image("./images/bg_repl.jpg")
 dog_img = load_color_image("./images/dog.jpg")
 star_gif_cap = cv.VideoCapture("./images/starlight.gif")
 
-
+# parsing args
 backend_id = backend_target_pairs[args.backend_target][0]
 target_id = backend_target_pairs[args.backend_target][1]
+# init model for background replacement
 model = PPHumanSeg(args.model, backend_id, target_id)
+# device id is used only for laptop development
 deviceId = 1
+
 cap = cv.VideoCapture(deviceId)
+
+# uncomment the below line and comment the one above for Jetson
+# cap = cv.VideoCapture(gstreamer_pipeline(flip_method=2), cv.CAP_GSTREAMER)
+
 frame_count = 0
 start_time = time.time()
-# cap = cv.VideoCapture(gstreamer_pipeline(flip_method=2), cv.CAP_GSTREAMER)
-# w = int(cap.get(cv.CAP_PROP_FRAME_WIDTH))
-# h = int(cap.get(cv.CAP_PROP_FRAME_HEIGHT))
+
+# modes define what is done to the image
+# setting default mode
 mode = 0
+# Mode 0: No effects
+# Mode 1: Background blur
+# Mode 2: Background replacement
+# Mode 3: face replacement
+# Mode 4: face replacement
+# Mode 5: Background blend
+
 if cap.isOpened():
     window_handle = cv.namedWindow("c_processed_op", cv.WINDOW_AUTOSIZE)
     count = 0
