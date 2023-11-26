@@ -185,12 +185,15 @@ def _distort(img, w1, h1):
 
 def face_distort(frame):
     faces = face_detect(frame)
-    if faces.size != 0:
+    try:
         x, y, w, h = faces[0]
         roi = frame[y : y + h, x : x + w]
         dis_roi = _distort(roi, w, h)
         frame[y : y + h, x : x + w] = dis_roi
-    return frame
+    except IndexError:
+        pass
+    finally:
+        return frame
 
 
 def face_replace(frame, repl_img):
