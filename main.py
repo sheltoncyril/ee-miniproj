@@ -37,7 +37,7 @@ target_id = backend_target_pairs[args.backend_target][1]
 # init model for background replacement
 model = PPHumanSeg(args.model, backend_id, target_id)
 # device id is used only for laptop development
-deviceId = 1
+deviceId = 0
 
 cap = cv.VideoCapture(deviceId)
 
